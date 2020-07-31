@@ -7,35 +7,39 @@ import (
 
 func publish(msg string, c chan string) {
 	c <- msg
-	defer close(c)
+	fmt.Println("Msg: ",msg," Published to ", c, "channel")
 }
 
 func sendToConsumers(msg string) {
-	Conn, _ := net.DialUDP("udp", nil, &net.UDPAddr{IP: []byte{127, 0, 0, 1}, Port: 9999, Zone: ""})
-	defer Conn.Close()
-	Conn.Write([]byte("hello"))
+	conn, _ := net.DialUDP("udp", nil, &net.UDPAddr{IP: []byte{127, 0, 0, 1}, Port: 9999, Zone: ""})
+	defer conn.Close()
+	fmt.Fprintf(conn,msg)
 }
 
 func dequeAndSendToConsumers(c chan string) {
 	select {
 	case msg := <-c:
-		fmt.Println("Message: ", msg, " Enque")
+		fmt.Println("Message: ", msg, " Deque")
 		go sendToConsumers(msg)
 	}
 }
 
 func main() {
-	ServerConn, _ := net.ListenUDP("udp", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: 48772, Zone: ""})
-	defer ServerConn.Close()
+	serverConn, _ := net.ListenUDP("udp", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: 48772, Zone: ""})
+	defer serverConn.Close()
+
+	fmt.Println("Server started.")
 
 	c := make(chan string)
-	dequeAndSendToConsumers(c)
+	defer close(c)
 
-	buf := make([]byte, 1024)
+	buffer := make([]byte, 1024)
+	
 	for {
-		n, addr, _ := ServerConn.ReadFromUDP(buf)
-		fmt.Println("Received ", string(buf[0:n]), " from ", addr)
-		go publish(string(buf[0:n]), c)
+		n, addr, _ := serverConn.ReadFromUDP(buffer)
+		fmt.Println("Received ", string(buffer[0:n]), " from ", addr)
+		go publish(string(buffer[0:n]), c)
+		dequeAndSendToConsumers(c)
 	}
 
 }

@@ -19,11 +19,12 @@ func sendToConsumers(msg string) {
 func dequeAndSendToConsumers(c chan string) {
 	// - Select: blocks until one of its cases can run, then it executes that case. 
 	// 	It chooses one at random if multiple are ready.
-	select {
-	case msg := <-c:
-		fmt.Println("Message: ", msg, " Deque")
-		go sendToConsumers(msg)
-	}
+	// select {
+	// case msg := <-c:
+	msg := <-c
+	fmt.Println("Message: ", msg, " Deque")
+	go sendToConsumers(msg)
+	// }
 }
 
 func main() {

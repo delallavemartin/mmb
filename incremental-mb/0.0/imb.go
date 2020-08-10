@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 )
 
 func postMsg(reader io.Reader) int {
-	resp, err := http.Post("http://localhost:9999", "text/plain", reader)
+	resp, err := http.Post("http://localhost:9999/notify", "text/plain", reader)
 	if err != nil {
 		fmt.Println("ERROR - send request to port: 9999 FAILED")
 		return 500
@@ -20,7 +19,7 @@ func postMsg(reader io.Reader) int {
 
 func sendToHandler(w http.ResponseWriter, r *http.Request) {
 	statusCode := postMsg(r.Body)
-	io.WriteString(w, "Status: "+strconv.Itoa(statusCode))
+	w.WriteHeader(statusCode)
 }
 
 func main() {
@@ -28,7 +27,6 @@ func main() {
 
 	http.HandleFunc("/notify", sendToHandler)
 
-	// listen to port
 	http.ListenAndServe(":8080", nil)
 
 }

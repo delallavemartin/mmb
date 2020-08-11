@@ -12,10 +12,10 @@ func printMsgHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte("Error parsing message."))
+		return
 	}
 	defer r.Body.Close()
 	fmt.Println(string(body))
-	w.WriteHeader(200)
 }
 
 func main() {

@@ -49,8 +49,7 @@ func publisherHandler(w http.ResponseWriter, r *http.Request) {
 	// Since is requested by postMsg function firm
 	body := readerToString(r.Body)
 
-	// Buffered channel
-	ch := make(chan Request, 5)
+	ch := make(chan Request)
 
 	go publish(ch)
 

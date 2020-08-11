@@ -32,11 +32,11 @@ func publisherHandler(w http.ResponseWriter, r *http.Request) {
 	// Reader converted to string to create one Reader per POST.
 	// Since is requested by postMsg function firm
 	body := readerToString(r.Body)
-	postMsg("http://localhost:9995/notify", "text/plain", strings.NewReader(body))
-	postMsg("http://localhost:9996/notify", "text/plain", strings.NewReader(body))
-	postMsg("http://localhost:9997/notify", "text/plain", strings.NewReader(body))
-	postMsg("http://localhost:9998/notify", "text/plain", strings.NewReader(body))
-	postMsg("http://localhost:9999/notify", "text/plain", strings.NewReader(body))
+	go postMsg("http://localhost:9995/notify", "text/plain", strings.NewReader(body))
+	go postMsg("http://localhost:9996/notify", "text/plain", strings.NewReader(body))
+	go postMsg("http://localhost:9997/notify", "text/plain", strings.NewReader(body))
+	go postMsg("http://localhost:9998/notify", "text/plain", strings.NewReader(body))
+	go postMsg("http://localhost:9999/notify", "text/plain", strings.NewReader(body))
 }
 
 func main() {

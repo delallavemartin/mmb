@@ -16,7 +16,8 @@ type Request struct {
 	Reader      io.Reader
 }
 
-var consumers_adresses = make([]string, 10)
+// Only 10 subscribers are supported
+var consumers_adresses = make([]string, 0, 10)
 
 func readerToString(reader io.Reader) string {
 	stream, err := ioutil.ReadAll(reader)
@@ -57,7 +58,7 @@ func publisherHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Iterate over consumers list.
 	for i := 0; i < len(consumers_adresses); i++ {
-		// Send requests to the channel in order to proccess it.
+		// Send request to the channel in order to proccess it.
 		ch <- Request{"http://localhost:" + consumers_adresses[i] + "/notify", "text/plain", strings.NewReader(body)}
 	}
 }
@@ -66,15 +67,8 @@ func subscriberHandler(w http.ResponseWriter, r *http.Request) {
 	// Read port number
 	port_number := readerToString(r.Body)
 
-	log.Println("INFO - port to add: " + port_number)
-
-	consumers_capacity := cap(consumers_adresses)
-	amount_of_consumers := len(consumers_adresses)
-
-	if consumers_capacity >= amount_of_consumers {
-		log.Println("INFO - port added: " + port_number)
-		consumers_adresses = append(consumers_adresses, port_number)
-	}
+	consumers_adresses = append(consumers_adresses, port_number)
+	log.Println("INFO - port added: " + port_number)
 
 }
 

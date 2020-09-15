@@ -10,21 +10,21 @@ import (
 	"sync"
 )
 
-// Created to store all information needed to publish the request.
+// Model Definition
+// Store all information needed to publish the request.
 type Request struct {
 	Url         string
 	ContentType string
 	Reader      io.Reader
 }
 
+// Subscriber wrapper for Sync. purposes
 type SafeSubscribers struct {
 	addresses []string
 	mux       sync.Mutex
 }
 
-// SPEC: Only 10 subscribers are supported
-var subscribers_addresses = SafeSubscribers{addresses: make([]string, 0, 10)}
-
+// SafeSubscribers methods
 func (s *SafeSubscribers) add(address string) {
 	s.mux.Lock()
 	s.addresses = append(s.addresses, address)
@@ -43,6 +43,11 @@ func (s *SafeSubscribers) numberOfSubscribers() int {
 	return len(s.addresses)
 }
 
+// Global Variables
+// SPEC: Only 10 subscribers are supported
+var subscribers_addresses = SafeSubscribers{addresses: make([]string, 0, 10)}
+
+// Helpers
 func readerToString(reader io.Reader) string {
 	stream, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -62,6 +67,7 @@ func postMsg(url string, contentType string, reader io.Reader) {
 	log.Println("INFO - message SUCCESFULLY sent to: ", url)
 }
 
+// Handler related method
 func publish(ch chan Request) {
 	// this loop receives values from the channel repeatedly until it is closed
 	for request := range ch {
@@ -71,6 +77,7 @@ func publish(ch chan Request) {
 
 }
 
+// Request Handlers
 func publisherHandler(w http.ResponseWriter, r *http.Request) {
 	// Reader converted to string to create one Reader per POST.
 	// Since is requested by postMsg function firm

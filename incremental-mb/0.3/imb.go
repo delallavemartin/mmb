@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 // Created to store all information needed to publish the request.
@@ -16,8 +17,31 @@ type Request struct {
 	Reader      io.Reader
 }
 
-// Only 10 subscribers are supported
-var consumers_adresses = make([]string, 0, 10)
+type SafeSubscribers struct {
+	addresses []string
+	mux       sync.Mutex
+}
+
+// SPEC: Only 10 subscribers are supported
+var subscribers_addresses = SafeSubscribers{addresses: make([]string, 0, 10)}
+
+func (s *SafeSubscribers) add(address string) {
+	s.mux.Lock()
+	s.addresses = append(s.addresses, address)
+	s.mux.Unlock()
+}
+
+func (s *SafeSubscribers) getByIndex(index int) string {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+	return s.addresses[index]
+}
+
+func (s *SafeSubscribers) numberOfSubscribers() int {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+	return len(s.addresses)
+}
 
 func readerToString(reader io.Reader) string {
 	stream, err := ioutil.ReadAll(reader)
@@ -56,10 +80,10 @@ func publisherHandler(w http.ResponseWriter, r *http.Request) {
 
 	go publish(ch)
 
-	//Iterate over consumers list.
-	for i := 0; i < len(consumers_adresses); i++ {
+	//Iterate over subscribers list.
+	for i := 0; i < subscribers_addresses.numberOfSubscribers(); i++ {
 		// Send request to the channel in order to proccess it.
-		ch <- Request{"http://localhost:" + consumers_adresses[i] + "/notify", "text/plain", strings.NewReader(body)}
+		ch <- Request{"http://localhost:" + subscribers_addresses.getByIndex(i) + "/notify", "text/plain", strings.NewReader(body)}
 	}
 }
 
@@ -67,9 +91,9 @@ func subscriberHandler(w http.ResponseWriter, r *http.Request) {
 	// Read port number
 	port_number := readerToString(r.Body)
 
-	consumers_adresses = append(consumers_adresses, port_number)
+	// Append new subscribers to subscribers list
+	subscribers_addresses.add(port_number)
 	log.Println("INFO - port added: " + port_number)
-
 }
 
 func main() {
@@ -83,11 +107,11 @@ func main() {
 	defer f.Close()
 	log.SetOutput(f)
 
-	// When server receives a notification, the msg will be published to his subscribers/consumers
+	// When server receives a notification, the msg will be published to his subscribers
 	// TODO: handle HTTP error codes.
 	http.HandleFunc("/notify", publisherHandler)
 
-	// When server receives a subscription, port will be added to consumers list
+	// When server receives a subscription, port will be added to subscribers list
 	http.HandleFunc("/subscribe", subscriberHandler)
 
 	// Each request its mapped to one lightweight thread trough go routines.

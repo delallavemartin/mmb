@@ -16,6 +16,8 @@ type Request struct {
 	Reader      io.Reader
 }
 
+var consumers_adresses = make([]string, 10)
+
 func readerToString(reader io.Reader) string {
 	stream, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -53,12 +55,26 @@ func publisherHandler(w http.ResponseWriter, r *http.Request) {
 
 	go publish(ch)
 
-	// Sends requests to the channel in order to proccess them.
-	ch <- Request{"http://localhost:9995/notify", "text/plain", strings.NewReader(body)}
-	ch <- Request{"http://localhost:9996/notify", "text/plain", strings.NewReader(body)}
-	ch <- Request{"http://localhost:9997/notify", "text/plain", strings.NewReader(body)}
-	ch <- Request{"http://localhost:9998/notify", "text/plain", strings.NewReader(body)}
-	ch <- Request{"http://localhost:9999/notify", "text/plain", strings.NewReader(body)}
+	//Iterate over consumers list.
+	for i := 0; i < len(consumers_adresses); i++ {
+		// Send requests to the channel in order to proccess it.
+		ch <- Request{"http://localhost:" + consumers_adresses[i] + "/notify", "text/plain", strings.NewReader(body)}
+	}
+}
+
+func subscriberHandler(w http.ResponseWriter, r *http.Request) {
+	// Read port number
+	port_number := readerToString(r.Body)
+
+	log.Println("INFO - port to add: " + port_number)
+
+	consumers_capacity := cap(consumers_adresses)
+	amount_of_consumers := len(consumers_adresses)
+
+	if consumers_capacity >= amount_of_consumers {
+		log.Println("INFO - port added: " + port_number)
+		consumers_adresses = append(consumers_adresses, port_number)
+	}
 
 }
 
@@ -76,6 +92,9 @@ func main() {
 	// When server receives a notification, the msg will be published to his subscribers/consumers
 	// TODO: handle HTTP error codes.
 	http.HandleFunc("/notify", publisherHandler)
+
+	// When server receives a subscription, port will be added to consumers list
+	http.HandleFunc("/subscribe", subscriberHandler)
 
 	// Each request its mapped to one lightweight thread trough go routines.
 	http.ListenAndServe(":8080", nil)

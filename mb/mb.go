@@ -1,134 +1,39 @@
 package main
 
 import (
-	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"strings"
-	"sync"
+	"mllave.com/mllave/mmb/mb/src/messengerservice/mail"
+	"mllave.com/mllave/mmb/mb/src/messengerservice/postoffice"
+	"mllave.com/mllave/mmb/mb/src/messengerservice/delivery"
+	"mllave.com/mllave/mmb/mb/src/reader"
+	"mllave.com/mllave/mmb/mb/src/model/subscribers"
 )
 
-// MODEL DEFINITION
+//  Global Variables - SPEC: Only 10 subscribers are supported
+var aListOfSubscribers = subscribers.SubscribersList{Addresses: make([]string, 0, 10)}
 
-// Store all information needed to publish the request.
-type Request struct {
-	Url         string
-	ContentType string
-	Reader      io.Reader
-}
-
-// SubscribersList with Sync.
-type SubscribersList struct {
-	Addresses []string
-	Mux       sync.Mutex
-}
-
-// SubscribersList methods
-func (self *SubscribersList) Add(address string) {
-	self.Mux.Lock()
-	self.Addresses = append(self.Addresses, address)
-	self.Mux.Unlock()
-}
-
-func (self *SubscribersList) NotifySubscribers(notifier func(address string)) {
-	self.Mux.Lock()
-	defer self.Mux.Unlock()
-	//Iterate over subscribers list.
-	for i := 0; i < len(self.Addresses); i++ {
-		notifier(self.Addresses[i])
-	}
-}
-
-// Delivery, delivers notifications to subscribers
-type Delivery interface {
-	Delivers()
-}
-
-// HttpDelivery, implementation of HTTP communication
-type HttpDelivery struct {
-	Request Request
-}
-
-// HttpDelivery methods
-func (self *HttpDelivery) Delivers() {
-	_, err := http.Post(self.Request.Url, self.Request.ContentType, self.Request.Reader)
-	if err != nil {
-		log.Println("ERROR - send request to: ", self.Request.Url, " FAILED")
-		log.Println(err)
-		return
-	}
-	log.Println("INFO - message SUCCESFULLY sent to: ", self.Request.Url)
-}
-
-// Notification Center, knows how to notify and received messages
-type NotificationCenter struct {
-	Channel chan Request
-}
-
-// Notification Center methods
-func (self *NotificationCenter) OnMessageReceived(router func(request Request)) {
-	// this loop receives values from the channel repeatedly until it is closed
-	for request := range self.Channel {
-		go router(request)
-	}
-}
-
-func (self *NotificationCenter) Notifier(msg string) func(address string) {
-	return func(address string) {
-		// Send request to the channel in order to proccess it.
-		self.Channel <- Request{"http://localhost:" + address + "/notify", "text/plain", strings.NewReader(msg)}
-	}
-}
-
-// CustomReader, used to convert a Reader to string
-type CustomReader struct {
-	Reader         io.Reader
-	ReaderAsString string
-}
-
-// CustomReader Methods
-func (self *CustomReader) ToString() string {
-	if self.ReaderAsString == "" {
-		stream, err := ioutil.ReadAll(self.Reader)
-		if err != nil {
-			log.Println("ERROR - reading reader FAILED")
-			return ""
-		}
-		self.ReaderAsString = string(stream)
-	}
-	return self.ReaderAsString
-}
-
-// Global Variables
-// SPEC: Only 10 subscribers are supported
-var aListOfSubscribers = SubscribersList{Addresses: make([]string, 0, 10)}
-
-// Request Handlers
 func publisherHandler(w http.ResponseWriter, r *http.Request) {
 	// Reader converted to string to create one Reader per POST.
-	msg := CustomReader{Reader: r.Body}
+	msg := reader.CustomReader{Reader: r.Body}
 
-	// Notification Center, used to notify to each subscriber
-	subscribersNotificationCenter := NotificationCenter{Channel: make(chan Request)}
+	// Post Office, used to notify to each subscriber
+	aSubscribersPostOffice := postoffice.PostOffice{Channel: make(chan mail.Mail)}
 
-	go subscribersNotificationCenter.OnMessageReceived(func(request Request) {
+	go aSubscribersPostOffice.OnMessageReceived(func(aSubscriberMail mail.Mail) {
 		// OBJECT INITIALIZATION & MESSAGE
-		anHTTPDelivery := HttpDelivery{Request: request}
-		// go routines added to improve request per second performance.
+		anHTTPDelivery := delivery.HttpDelivery{Mail: aSubscriberMail}
 		anHTTPDelivery.Delivers()
 	})
 
 	//CLOSURE
-	aListOfSubscribers.NotifySubscribers(subscribersNotificationCenter.Notifier(msg.ToString()))
+	aListOfSubscribers.NotifySubscribers(aSubscribersPostOffice.NotificationAssistant(msg.ToString()))
 }
 
 func subscriberHandler(w http.ResponseWriter, r *http.Request) {
-	// Read port number
-	portNumber := CustomReader{Reader: r.Body}
+	portNumber := reader.CustomReader{Reader: r.Body}
 
-	// Append new subscribers to subscribers list
 	aListOfSubscribers.Add(portNumber.ToString())
 	log.Println("INFO - port added: " + portNumber.ToString())
 }

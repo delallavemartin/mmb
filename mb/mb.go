@@ -71,7 +71,7 @@ type NotificationCenter struct {
 func (self *NotificationCenter) OnMessageReceived(router func(request Request)) {
 	// this loop receives values from the channel repeatedly until it is closed
 	for request := range self.Channel {
-		router(request)
+		go router(request)
 	}
 }
 
@@ -105,23 +105,23 @@ func (self *CustomReader) ToString() string {
 // SPEC: Only 10 subscribers are supported
 var aListOfSubscribers = SubscribersList{Addresses: make([]string, 0, 10)}
 
-// Notification Center, used to notify to each subscriber
-var SubscribersNotificationCenter = NotificationCenter{Channel: make(chan Request)}
-
 // Request Handlers
 func publisherHandler(w http.ResponseWriter, r *http.Request) {
 	// Reader converted to string to create one Reader per POST.
 	msg := CustomReader{Reader: r.Body}
 
-	go SubscribersNotificationCenter.OnMessageReceived(func(request Request) {
+	// Notification Center, used to notify to each subscriber
+	subscribersNotificationCenter := NotificationCenter{Channel: make(chan Request)}
+
+	go subscribersNotificationCenter.OnMessageReceived(func(request Request) {
 		// OBJECT INITIALIZATION & MESSAGE
 		anHTTPDelivery := HttpDelivery{Request: request}
 		// go routines added to improve request per second performance.
-		go anHTTPDelivery.Delivers()
+		anHTTPDelivery.Delivers()
 	})
 
 	//CLOSURE
-	aListOfSubscribers.NotifySubscribers(SubscribersNotificationCenter.Notifier(msg.ToString()))
+	aListOfSubscribers.NotifySubscribers(subscribersNotificationCenter.Notifier(msg.ToString()))
 }
 
 func subscriberHandler(w http.ResponseWriter, r *http.Request) {

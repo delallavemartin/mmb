@@ -6,7 +6,7 @@ An HTTP custom message broker as part of the Pub/Sub pattern was implemented in 
 
 # Project structure
 * **consumer**: Consumer/Subscriber program.
-* **mb**: Message broken program & performance metrics.
+* **mb**: Message broker program & performance metrics.
 * **incremental-mb**: Step by step code evolution of **mb**. it has the purpose to show the incremental proccess involve to get the final solution. Each step brings a new basic go concurreny concept along with performance metrics.
 	
 

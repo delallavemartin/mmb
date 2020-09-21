@@ -2,22 +2,20 @@
 
 # SPEC 
 1. Register _10 Subscriber_ programatically
-  1.1. Subscribe Endpoint
-  1.2. Subscribe Handler
-  1.3. Subscriber List
+	1. Subscribe Endpoint
+	1. Subscribe Handler
+	1. Subscriber List
   
 # HOW TO: Step 1
-
-// TODO UPDATE CODE 
 
 **1.1** 
 
 ```go
 func main() {
-  ...
+	...
 	// When server receives a subscription, port will be added to subscribers list
 	http.HandleFunc("/subscribe", subscriberHandler)
-  ...
+	...
 }
 ```
 

@@ -74,7 +74,7 @@ ab -n 5000 -c 20 -p code/golang-projects/mmb/SampleTextFile_1000kb.tsv http://lo
 Same behavior as the previous one.
 Last consumer added was executed ok.
 
-# HOW TO: Step 2
+# HOW TO: Step 2 - MUTEX
 
 **1.2** 
 

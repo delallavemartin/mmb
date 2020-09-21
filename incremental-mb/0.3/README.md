@@ -1,7 +1,7 @@
 # imb 0.3 - Incremental Message Broker
 
 # SPEC 
-1. Register _10 Subscriber_ programatically
+1. Register _10 Subscribers_ programatically
 	1. Subscribe Endpoint
 	1. Subscribe Handler
 	1. Subscriber List

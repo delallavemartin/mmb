@@ -25,7 +25,7 @@ ab -n 5000 -c 20 -p code/golang-projects/mmb/SampleTextFile_1000kb.tsv http://lo
 
 too slow
 
-# HOW TO: Step 2
+# HOW TO: Step 2 - GO routines
 
 ```go
 func publisherHandler(w http.ResponseWriter, r *http.Request) {

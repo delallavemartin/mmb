@@ -1,7 +1,10 @@
-package main
+package handlers
+
+// Package handlers provides HTTP handler functions for the Message Broker (MB) application.
+// It includes handlers for publishing messages and managing subscriber registrations.
+
 
 import (
-    "log"
     "net/http"
 
     "go.uber.org/zap"
@@ -23,7 +26,9 @@ func PublisherHandler(subs *subscribers.SubscribersList, logger *zap.Logger) htt
 
         go aSubscribersPostOffice.OnMessageReceived(func(aSubscriberMail mail.Mail) {
             anHTTPDelivery := delivery.HttpDelivery{Mail: aSubscriberMail}
-            anHTTPDelivery.Delivers()
+            if err := anHTTPDelivery.Delivers(); err != nil {
+                logger.Error("failed to deliver message", zap.Error(err))
+            }
         })
 
         subs.NotifySubscribers(aSubscribersPostOffice.NotificationAssistant(msg.ToString()))

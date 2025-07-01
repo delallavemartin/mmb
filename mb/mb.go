@@ -1,5 +1,9 @@
 package main
 
+// This package provides the main entry point for the Message Broker (MB) application.
+// It sets up the HTTP server, handles configuration, logging, and graceful shutdown.
+
+
 import (
 	"context"
 	"go.uber.org/zap"
@@ -9,10 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"mllave.com/mllave/mmb/mb/src/messengerservice/mail"
-	"mllave.com/mllave/mmb/mb/src/messengerservice/postoffice"
-	"mllave.com/mllave/mmb/mb/src/messengerservice/delivery"
-	"mllave.com/mllave/mmb/mb/src/reader"
+	"mllave.com/mllave/mmb/mb/handlers"
 	"mllave.com/mllave/mmb/mb/src/model/subscribers"
 )
 
@@ -30,9 +31,11 @@ func main() {
 	// Set up zap logger
     logger, err := zap.NewProduction()
     if err != nil {
-        log.Fatalf("can't initialize zap logger: %v", err)
+        logger.Fatal("can't initialize zap logger: %v", zap.Error(err))
     }
-    defer logger.Sync()
+    if err := logger.Sync(); err != nil {
+        logger.Error("failed to sync logger", zap.Error(err))
+    }
 
     logger.Info("Server started", zap.String("port", port), zap.String("logPath", logPath))
 
@@ -41,8 +44,8 @@ func main() {
 	var aListOfSubscribers = subscribers.SubscribersList{Addresses: make([]string, 0, 10)}
 
     mux := http.NewServeMux()
-    mux.HandleFunc("/notify", PublisherHandler(&aListOfSubscribers, logger))
-    mux.HandleFunc("/subscribe", SubscriberHandler(&aListOfSubscribers, logger))
+    mux.HandleFunc("/notify", handlers.PublisherHandler(&aListOfSubscribers, logger))
+    mux.HandleFunc("/subscribe", handlers.SubscriberHandler(&aListOfSubscribers, logger))
 
     server := &http.Server{
         Addr:    ":" + port,

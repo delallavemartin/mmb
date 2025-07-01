@@ -1,4 +1,4 @@
-package main
+package handlers_test
 
 import (
     "bytes"
@@ -6,16 +6,16 @@ import (
     "net/http/httptest"
     "testing"
 
-    "go.uber.org/zap"
     "go.uber.org/zap/zaptest"
 
+    "mllave.com/mllave/mmb/mb/handlers"
     "mllave.com/mllave/mmb/mb/src/model/subscribers"
 )
 
 func TestSubscriberHandler(t *testing.T) {
     subs := &subscribers.SubscribersList{Addresses: make([]string, 0, 10)}
     logger := zaptest.NewLogger(t)
-    handler := SubscriberHandler(subs, logger)
+    handler := handlers.SubscriberHandler(subs, logger)
 
     body := bytes.NewBufferString("8081")
     req := httptest.NewRequest(http.MethodPost, "/subscribe", body)
@@ -35,7 +35,7 @@ func TestSubscriberHandler(t *testing.T) {
 func TestPublisherHandler(t *testing.T) {
     subs := &subscribers.SubscribersList{Addresses: []string{"8081"}}
     logger := zaptest.NewLogger(t)
-    handler := PublisherHandler(subs, logger)
+    handler := handlers.PublisherHandler(subs, logger)
 
     body := bytes.NewBufferString("test message")
     req := httptest.NewRequest(http.MethodPost, "/notify", body)
